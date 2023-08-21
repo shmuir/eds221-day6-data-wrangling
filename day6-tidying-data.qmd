@@ -1,7 +1,10 @@
 ---
 title: "Tidying Data"
+date: "21 August 2023"
 format: html
 editor: visual
+execute: 
+  warning: false
 ---
 
 ```{r}
@@ -10,4 +13,62 @@ library(janitor)
 library(here)
 ```
 
-## 
+## Pivots
+
+```{r}
+wb <- read_csv(here("data", "wb_indicators.csv"), na = c("..", ""))
+```
+
+#### Making Tidy Data
+
+```{r}
+wb_long <- pivot_longer(wb, 5:24, names_to = "year", values_to = "indicator_val") %>%
+  separate(., year, sep = " ", remove = TRUE, into = c("year", "year_chr")) %>%
+  select(-year_chr, -`Country Code`, -`Series Code`)
+
+head(wb_long)
+
+wb_tidy <- wb_long %>%
+  drop_na(`Series Name`) %>%
+  pivot_wider(., names_from = `Series Name`, values_from = indicator_val)
+
+head(wb_tidy)
+```
+
+#### Re-naming Columns 
+- Using names()
+
+```{r}
+#names(wb_tidy) <- c("country", "year", "access_clean_fuels_pp", "access_elect_pp", "co2_emiss_kt", "fossil_fuel_cont_pt", "water_stress")
+
+#head(wb_tidy)
+```
+
+- Or a better, safer way using dplyr::rename() since you can't get the columns mixed up
+
+```{r}
+wb_tidy <- wb_tidy %>% 
+  rename(country = `Country Name`,
+         access_clean_fuels_pp = `Access to clean fuels and technologies for cooking (% of population)`,
+         access_elect_pp = `Access to electricity (% of population)`,
+         co2_emiss_kt = `CO2 emissions (kt)`,
+         fossil_fuel_cont_pt = `Fossil fuel energy consumption (% of total)`,
+         water_stress = `Level of water stress: freshwater withdrawal as a proportion of available freshwater resources`) %>% 
+  mutate(year = as.numeric(year)) #year a character so change to numeric
+
+head(wb_tidy)
+```
+
+## Plotting
+
+```{r}
+ggplot(wb_tidy, aes(year, co2_emiss_kt, color = country)) +
+  geom_line() +
+  theme_linedraw() +
+  theme(legend.position = "none") #too many countries to have a legend
+```
+
+
+
+
+
